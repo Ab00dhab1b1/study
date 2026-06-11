@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Study Tool</title>
+    <style>
+        :root {
+            /* Light Mode Colors */
+            --bg: #f0f0f0;
+            --card-bg: #ffffff;
+            --text: #1a1a1a;
+            --accent: #2ecc71; /* Green */
+            --secondary-text: #666;
+            --border: #ddd;
+        }
+
+        [data-theme="dark"] {
+            /* Dark Mode Colors */
+            --bg: #0d0d0d;
+            --card-bg: #1a1a1a;
+            --text: #e0e0e0;
+            --accent: #2ecc71; /* Green */
+            --secondary-text: #aaa;
+            --border: #333;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            transition: background 0.3s ease;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 600px;
+            padding: 20px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            padding: 20px;
+            max-width: 600px;
+        }
+
+        button {
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+
+        .btn-theme {
+            background: var(--card-bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-accent {
+            background: var(--accent);
+            color: white;
+            width: 100%;
+            margin-top: 10px;
+            font-size: 16px;
+        }
+
+        .btn-accent:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        .card {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            box-sizing: border-box;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent);
+            width: 0%;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .hidden { display: none; }
+
+        .option-btn {
+            display: block;
+            width: 100%;
+            text-align: left;
+            background: var(--bg);
+            color: var(--text);
+            padding: 15px;
+            margin: 10px 0;
+            border: 2px solid var(--border);
+        }
+
+        .option-btn:hover { border-color: var(--accent); }
+
+        .feedback {
+            text-align: center;
+            font-weight: bold;
+            margin-top: 15px;
+        }
+
+        .correct { color: var(--accent); }
+        .wrong { color: #e74c3c; }
+
+    </style>
+</head>
+<body data-theme="dark">
+
+    <header>
+        <div style="font-weight: bold; font-size: 20px;">Learn Mode</div>
+        <button class="btn-theme" onclick="toggleTheme()">🌓 Toggle Theme</button>
+    </header>
+
+    <div class="container">
+        <!-- SETUP PHASE -->
+        <div id="setup-area">
+            <div class="card">
+                <h3>Add Flashcards</h3>
+                <div id="input-list">
+                    <div class="input-pair">
+                        <input type="text" placeholder="Term" class="term-input">
+                        <input type="text" placeholder="Definition" class="def-input">
+                    </div>
+                </div>
+                <button class="btn-theme" onclick="addInputRow()" style="width: 100%; margin-top:10px;">+ Add Another Card</button>
+                <button class="btn-accent" onclick="startStudy()">Start Learning</button>
+            </div>
+        </div>
+
+        <!-- STUDY PHASE -->
+        <div id="study-area" class="hidden">
+            <div class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div>
+            
+            <div class="card">
+                <p id="mode-label" style="font-size: 12px; color: var(--secondary-text);"></p>
+                <h2 id="question-text">Term goes here</h2>
+                
+                <div id="mcq-options"></div>
+                
+                <div id="written-area" class="hidden">
+                    <input type="text" id="written-input" placeholder="Type the definition...">
+                    <button class="btn-accent" onclick="checkWritten()">Submit</button>
+                </div>
+
+                <div id="feedback-area" class="hidden">
+                    <p id="feedback-text" class="feedback"></p>
+                    <button class="btn-accent" onclick="nextQuestion()">Next Question</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- FINISH PHASE -->
+        <div id="finish-area" class="hidden" style="text-align: center;">
+            <h1>🎉 Mastered!</h1>
+            <p>You've learned all the cards in this set.</p>
+            <button class="btn-accent" onclick="location.reload()">Restart</button>
+        </div>
+    </div>
+
+    <script>
+        let deck = [];
+        let currentIndex = 0;
+        let currentCard = null;
+
+        function toggleTheme() {
+            const body = document.body;
+            const current = body.getAttribute('data-theme');
+            body.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+        }
+
+        function addInputRow() {
+            const div = document.createElement('div');
+            div.className = 'input-pair';
+            div.innerHTML = `
+                <input type="text" placeholder="Term" class="term-input">
+                <input type="text" placeholder="Definition" class="def-input">
+            `;
+            document.getElementById('input-list').appendChild(div);
+        }
+
+        function startStudy() {
+            const terms = document.getElementsByClassName('term-input');
+            const defs = document.getElementsByClassName('def-input');
+            
+            for (let i = 0; i < terms.length; i++) {
+                if (terms[i].value.trim() !== "") {
+                    deck.push({
+                        term: terms[i].value,
+                        def: defs[i].value,
+                        mastery: 0 // 0 = MCQ, 1 = Written, 2 = Mastered
+                    });
+                }
+            }
+
+            if (deck.length < 2) {
+                alert("Please enter at least 2 cards!");
+                return;
+            }
+
+            document.getElementById('setup-area').classList.add('hidden');
+            document.getElementById('study-area').classList.remove('hidden');
+            nextQuestion();
+        }
+
+        function nextQuestion() {
+            const eligible = deck.filter(c => c.mastery < 2);
+            if (eligible.length === 0) {
+                document.getElementById('study-area').classList.add('hidden');
+                document.getElementById('finish-area').classList.remove('hidden');
+                return;
+            }
+
+            // Update Progress
+            const mastered = deck.filter(c => c.mastery === 2).length;
+            document.getElementById('progress-fill').style.width = (mastered / deck.length * 100) + "%";
+
+            currentCard = eligible[Math.floor(Math.random() * eligible.length)];
+            
+            document.getElementById('question-text').innerText = currentCard.term;
+            document.getElementById('feedback-area').classList.add('hidden');
+            document.getElementById('written-input').value = "";
+
+            if (currentCard.mastery === 0) {
+                showMCQ();
+            } else {
+                showWritten();
+            }
+        }
+
+        function showMCQ() {
+            document.getElementById('mode-label').innerText = "MULTIPLE CHOICE";
+            document.getElementById('mcq-options').classList.remove('hidden');
+            document.getElementById('written-area').classList.add('hidden');
+            
+            const optionsArea = document.getElementById('mcq-options');
+            optionsArea.innerHTML = "";
+
+            let choices = [currentCard.def];
+            let others = deck.filter(c => c.def !== currentCard.def).map(c => c.def);
+            
+            // Pick up to 3 random wrong answers
+            others = others.sort(() => 0.5 - Math.random()).slice(0, 3);
+            choices = choices.concat(others).sort(() => 0.5 - Math.random());
+
+            choices.forEach(choice => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.innerText = choice;
+                btn.onclick = () => checkMCQ(choice);
+                optionsArea.appendChild(btn);
+            });
+        }
+
+        function showWritten() {
+            document.getElementById('mode-label').innerText = "WRITTEN ANSWER";
+            document.getElementById('mcq-options').classList.add('hidden');
+            document.getElementById('written-area').classList.remove('hidden');
+        }
+
+        function checkMCQ(answer) {
+            const isCorrect = answer === currentCard.def;
+            handleResult(isCorrect);
+        }
+
+        function checkWritten() {
+            const val = document.getElementById('written-input').value.trim().toLowerCase();
+            const isCorrect = val === currentCard.def.toLowerCase();
+            handleResult(isCorrect);
+        }
+
+        function handleResult(isCorrect) {
+            document.getElementById('mcq-options').classList.add('hidden');
+            document.getElementById('written-area').classList.add('hidden');
+            document.getElementById('feedback-area').classList.remove('hidden');
+            
+            const ft = document.getElementById('feedback-text');
+            if (isCorrect) {
+                ft.innerText = "✅ Correct!";
+                ft.className = "feedback correct";
+                currentCard.mastery++;
+            } else {
+                ft.innerText = "❌ Incorrect. The answer was: " + currentCard.def;
+                ft.className = "feedback wrong";
+                currentCard.mastery = 0; // Reset to MCQ if wrong
+            }
+        }
+    </script>
+</body>
+</html>
