@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mastery - Professional Study Tool</title>
+    <!-- Professional Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #050505; /* Deep Black */
+            --card-bg: #121212;
+            --text: #ffffff;
+            --accent: #00d664; /* Vibrant Professional Green */
+            --secondary-text: #888;
+            --border: #222;
+            --error: #ff4757;
+        }
+
+        [data-theme="light"] {
+            --bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --text: #1a1a1a;
+            --accent: #00ab50;
+            --secondary-text: #666;
+            --border: #e0e0e0;
+            --error: #d63031;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            transition: 0.3s ease;
+        }
+
+        .container { width: 95%; max-width: 650px; padding: 20px; }
+
+        header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            width: 100%; 
+            padding: 20px; 
+            max-width: 650px;
+            box-sizing: border-box;
+        }
+
+        button { 
+            cursor: pointer; 
+            border: none; 
+            border-radius: 8px; 
+            padding: 12px 20px; 
+            font-weight: 600; 
+            font-family: 'Inter', sans-serif;
+            transition: all 0.2s; 
+        }
+
+        .btn-theme { background: var(--card-bg); color: var(--text); border: 1px solid var(--border); font-size: 13px; }
+        .btn-quit { background: transparent; color: var(--secondary-text); font-size: 13px; margin-right: 10px; }
+        .btn-quit:hover { color: var(--error); }
+        
+        .btn-accent { 
+            background: var(--accent); 
+            color: #000; 
+            width: 100%; 
+            margin-top: 15px; 
+            font-size: 16px; 
+            padding: 16px; 
+            box-shadow: 0 4px 15px rgba(0, 214, 100, 0.2);
+        }
+        .btn-accent:hover { transform: translateY(-2px); opacity: 0.9; }
+
+        .card {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+            margin-bottom: 25px;
+            border: 1px solid var(--border);
+        }
+
+        .input-pair {
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border);
+            position: relative;
+        }
+
+        .input-pair p { font-size: 11px; color: var(--accent); margin: 5px 0; }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 14px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: rgba(255,255,255,0.03);
+            color: var(--text);
+            box-sizing: border-box;
+            font-size: 15px;
+            margin-bottom: 8px;
+        }
+
+        input[type="text"]:focus { outline: none; border-color: var(--accent); }
+
+        .clipboard-hint { font-size: 10px; color: var(--secondary-text); }
+
+        .image-preview-container {
+            width: 100%;
+            max-height: 280px;
+            background: #000;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: none;
+            justify-content: center;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        #study-img { max-width: 100%; max-height: 280px; object-fit: contain; }
+
+        .progress-container { width: 100%; height: 6px; background: var(--border); border-radius: 10px; margin-bottom: 30px; }
+        #progress-fill { height: 100%; background: var(--accent); width: 0%; border-radius: 10px; transition: width 0.5s ease; }
+
+        .hidden { display: none !important; }
+
+        /* Multiple Choice Styles */
+        .option-btn {
+            display: block;
+            width: 100%;
+            text-align: left;
+            background: rgba(255,255,255,0.02);
+            color: var(--text);
+            padding: 18px;
+            margin: 12px 0;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            font-size: 15px;
+        }
+
+        .option-btn:hover { border-color: var(--accent); background: rgba(0, 214, 100, 0.05); }
+
+        /* Professional Correct/Wrong Messaging */
+        .feedback-wrap { text-align: center; padding: 20px 0; }
+        
+        .correct-icon {
+            width: 60px; height: 60px;
+            background: var(--accent);
+            border-radius: 50%;
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            margin: 0 auto 15px auto;
+        }
+
+        .feedback-title {
+            font-weight: 700;
+            font-size: 24px;
+            letter-spacing: -0.5px;
+            margin-bottom: 5px;
+        }
+
+        .correct-text { color: var(--accent); }
+        .wrong-text { color: var(--error); }
+
+        .stats-label { font-size: 12px; font-weight: 600; color: var(--secondary-text); text-transform: uppercase; letter-spacing: 1px; }
+
+        .row-img-preview { 
+            width: 40px; height: 40px; border-radius: 4px; 
+            object-fit: cover; margin-top: 5px; display: none; border: 1px solid var(--border);
+        }
+
+    </style>
+</head>
+<body data-theme="dark">
+
+    <header>
+        <button id="quit-btn" class="btn-quit hidden" onclick="confirmQuit()">← Quit Session</button>
+        <button class="btn-theme" onclick="toggleTheme()">🌓 Switch Theme</button>
+    </header>
+
+    <div class="container">
+        <!-- SETUP PHASE -->
+        <div id="setup-area">
+            <div class="card">
+                <h2 style="margin: 0 0 10px 0; font-weight: 700;">Build Study Set</h2>
+                <p style="color: var(--secondary-text); font-size: 13px; margin-bottom: 25px;">Type your terms or <span style="color: var(--accent)">paste images (Ctrl+V)</span> directly into the rows.</p>
+                
+                <div id="input-list">
+                    <div class="input-pair" onpaste="handlePaste(event, this)">
+                        <input type="text" placeholder="Term (Question)" class="term-input">
+                        <input type="text" placeholder="Definition (Answer)" class="def-input">
+                        <span class="clipboard-hint">Click row & paste image (Optional)</span>
+                        <img class="row-img-preview">
+                        <input type="hidden" class="img-data">
+                    </div>
+                </div>
+                
+                <button class="btn-theme" onclick="addInputRow()" style="width: 100%; margin-top:20px;">+ Add New Card</button>
+                <button class="btn-accent" onclick="startStudy()">Launch Learn Mode</button>
+            </div>
+        </div>
+
+        <!-- STUDY PHASE -->
+        <div id="study-area" class="hidden">
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8px;">
+                <span class="stats-label">Mastery Progress</span>
+                <span id="progress-percent" style="font-size: 12px; font-weight: 700;">0%</span>
+            </div>
+            <div class="progress-container"><div id="progress-fill"></div></div>
+            
+            <div class="card">
+                <div id="mode-label" class="stats-label" style="margin-bottom: 20px; text-align: center;"></div>
+                
+                <div id="image-container" class="image-preview-container">
+                    <img id="study-img" src="">
+                </div>
+
+                <h1 id="question-text" style="text-align: center; margin: 0 0 30px 0; font-weight: 600; font-size: 28px;"></h1>
+                
+                <div id="mcq-options"></div>
+                
+                <div id="written-area" class="hidden">
+                    <input type="text" id="written-input" placeholder="Type your answer..." onkeydown="if(event.key==='Enter') checkWritten()">
+                    <button class="btn-accent" onclick="checkWritten()">Confirm Answer</button>
+                </div>
+
+                <!-- PROFESSIONAL FEEDBACK AREA -->
+                <div id="feedback-area" class="hidden">
+                    <div class="feedback-wrap">
+                        <div id="feedback-icon-container"></div>
+                        <div id="feedback-title" class="feedback-title"></div>
+                        <p id="feedback-subtitle" style="color: var(--secondary-text); margin-top: 0;"></p>
+                    </div>
+                    <button class="btn-accent" onclick="nextQuestion()">Continue</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- FINISH PHASE -->
+        <div id="finish-area" class="hidden">
+            <div class="card" style="text-align: center; padding: 50px 30px;">
+                <div class="correct-icon" style="width:80px; height:80px; margin-bottom: 25px;">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                </div>
+                <h1 style="margin: 0; font-size: 32px;">Set Mastered</h1>
+                <p style="color: var(--secondary-text);">You've successfully moved all cards to long-term memory.</p>
+                <button class="btn-accent" onclick="location.reload()">Start New Session</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let deck = [];
+        let currentCard = null;
+
+        function toggleTheme() {
+            const body = document.body;
+            body.setAttribute('data-theme', body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+        }
+
+        function addInputRow() {
+            const div = document.createElement('div');
+            div.className = 'input-pair';
+            div.onpaste = (e) => handlePaste(e, div);
+            div.innerHTML = `
+                <input type="text" placeholder="Term (Question)" class="term-input">
+                <input type="text" placeholder="Definition (Answer)" class="def-input">
+                <span class="clipboard-hint">Click row & paste image (Optional)</span>
+                <img class="row-img-preview">
+                <input type="hidden" class="img-data">
+            `;
+            document.getElementById('input-list').appendChild(div);
+        }
+
+        function handlePaste(e, element) {
+            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf("image") !== -1) {
+                    const blob = items[i].getAsFile();
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        const imgTag = element.querySelector('.row-img-preview');
+                        const hiddenInput = element.querySelector('.img-data');
+                        imgTag.src = event.target.result;
+                        imgTag.style.display = "block";
+                        hiddenInput.value = event.target.result;
+                    };
+                    reader.readAsDataURL(blob);
+                }
+            }
+        }
+
+        async function startStudy() {
+            const terms = document.getElementsByClassName('term-input');
+            const defs = document.getElementsByClassName('def-input');
+            const imgs = document.getElementsByClassName('img-data');
+            
+            deck = [];
+            for (let i = 0; i < terms.length; i++) {
+                if (terms[i].value.trim() !== "") {
+                    deck.push({
+                        term: terms[i].value.trim(),
+                        def: defs[i].value.trim(),
+                        image: imgs[i].value || null,
+                        mastery: 0 
+                    });
+                }
+            }
+
+            if (deck.length < 2) {
+                alert("Please add at least 2 cards.");
+                return;
+            }
+
+            document.getElementById('setup-area').classList.add('hidden');
+            document.getElementById('study-area').classList.remove('hidden');
+            document.getElementById('quit-btn').classList.remove('hidden');
+            nextQuestion();
+        }
+
+        function updateProgress() {
+            let currentPoints = deck.reduce((sum, card) => sum + card.mastery, 0);
+            let totalPoints = deck.length * 2;
+            let percentage = Math.round((currentPoints / totalPoints) * 100);
+            document.getElementById('progress-fill').style.width = percentage + "%";
+            document.getElementById('progress-percent').innerText = percentage + "%";
+        }
+
+        function nextQuestion() {
+            updateProgress();
+            const eligible = deck.filter(c => c.mastery < 2);
+            if (eligible.length === 0) {
+                document.getElementById('study-area').classList.add('hidden');
+                document.getElementById('finish-area').classList.remove('hidden');
+                document.getElementById('quit-btn').classList.add('hidden');
+                return;
+            }
+
+            currentCard = eligible[Math.floor(Math.random() * eligible.length)];
+            document.getElementById('question-text').innerText = currentCard.term;
+            document.getElementById('feedback-area').classList.add('hidden');
+            document.getElementById('written-input').value = "";
+
+            const imgContainer = document.getElementById('image-container');
+            if (currentCard.image) {
+                document.getElementById('study-img').src = currentCard.image;
+                imgContainer.style.display = "flex";
+            } else {
+                imgContainer.style.display = "none";
+            }
+
+            if (currentCard.mastery === 0) {
+                showMCQ();
+            } else {
+                showWritten();
+            }
+        }
+
+        function showMCQ() {
+            document.getElementById('mode-label').innerText = "Stage 1: Recognition";
+            document.getElementById('mcq-options').classList.remove('hidden');
+            document.getElementById('written-area').classList.add('hidden');
+            
+            const optionsArea = document.getElementById('mcq-options');
+            optionsArea.innerHTML = "";
+            let choices = [currentCard.def];
+            let others = deck.filter(c => c.def !== currentCard.def).map(c => c.def);
+            others = [...new Set(others)].sort(() => 0.5 - Math.random()).slice(0, 3);
+            choices = choices.concat(others).sort(() => 0.5 - Math.random());
+
+            choices.forEach(choice => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.innerText = choice;
+                btn.onclick = () => handleResult(choice === currentCard.def);
+                optionsArea.appendChild(btn);
+            });
+        }
+
+        function showWritten() {
+            document.getElementById('mode-label').innerText = "Stage 2: Recall";
+            document.getElementById('mcq-options').classList.add('hidden');
+            document.getElementById('written-area').classList.remove('hidden');
+            setTimeout(() => document.getElementById('written-input').focus(), 50);
+        }
+
+        function checkWritten() {
+            const val = document.getElementById('written-input').value.trim().toLowerCase();
+            handleResult(val === currentCard.def.toLowerCase());
+        }
+
+        function handleResult(isCorrect) {
+            document.getElementById('mcq-options').classList.add('hidden');
+            document.getElementById('written-area').classList.add('hidden');
+            document.getElementById('feedback-area').classList.remove('hidden');
+            
+            const iconWrap = document.getElementById('feedback-icon-container');
+            const title = document.getElementById('feedback-title');
+            const sub = document.getElementById('feedback-subtitle');
+
+            if (isCorrect) {
+                iconWrap.innerHTML = `
+                    <div class="correct-icon">
+                        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    </div>`;
+                title.innerText = "Excellent Recall";
+                title.className = "feedback-title correct-text";
+                sub.innerText = "You're getting closer to mastering this card.";
+                currentCard.mastery++;
+            } else {
+                iconWrap.innerHTML = `<div class="correct-icon" style="background: var(--error)">
+                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </div>`;
+                title.innerText = "Not quite";
+                title.className = "feedback-title wrong-text";
+                sub.innerHTML = `Correct answer: <b style="color: var(--text)">${currentCard.def}</b>`;
+                currentCard.mastery = 0; 
+            }
+            updateProgress();
+        }
+
+        function confirmQuit() {
+            if (confirm("Return to editor? Progress will be reset.")) {
+                location.reload();
+            }
+        }
+    </script>
+</body>
+</html>
