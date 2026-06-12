@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mastery Pro - Deck Manager</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #050505;
+            --card-bg: #121212;
+            --text: #ffffff;
+            --accent: #00d664;
+            --secondary-text: #888;
+            --border: #222;
+            --error: #ff4757;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container { width: 95%; max-width: 800px; padding: 20px; }
+
+        header { 
+            width: 100%; max-width: 800px; padding: 20px; 
+            display: flex; justify-content: space-between; align-items: center;
+            box-sizing: border-box;
+        }
+
+        .btn { 
+            cursor: pointer; border: none; border-radius: 8px; 
+            padding: 10px 18px; font-weight: 600; transition: 0.2s; 
+            font-family: inherit;
+        }
+
+        .btn-accent { background: var(--accent); color: #000; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+        .btn-danger { background: rgba(255, 71, 87, 0.1); color: var(--error); }
+        .btn-full { width: 100%; padding: 15px; margin-top: 10px; font-size: 16px; }
+
+        .card {
+            background: var(--card-bg); padding: 30px; border-radius: 20px;
+            border: 1px solid var(--border); margin-bottom: 20px;
+        }
+
+        /* Deck List Styles */
+        .deck-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .deck-item {
+            background: #1a1a1a; padding: 20px; border-radius: 12px;
+            border: 1px solid var(--border); cursor: pointer; position: relative;
+        }
+        .deck-item:hover { border-color: var(--accent); }
+        .deck-item h3 { margin: 0 0 5px 0; font-size: 18px; }
+        .deck-item p { margin: 0; font-size: 12px; color: var(--secondary-text); }
+
+        /* Editor Styles */
+        .input-row { 
+            display: flex; gap: 10px; padding: 15px 0; border-bottom: 1px solid #222; 
+            align-items: center; position: relative;
+        }
+        input[type="text"] {
+            flex: 1; background: #0a0a0a; border: 1px solid var(--border);
+            color: white; padding: 12px; border-radius: 8px; outline: none;
+        }
+        input:focus { border-color: var(--accent); }
+        .row-preview { width: 40px; height: 40px; border-radius: 4px; object-fit: cover; background: #000; display: none; }
+
+        /* Quiz Styles */
+        .progress-wrap { height: 6px; background: var(--border); border-radius: 10px; margin: 20px 0; overflow: hidden; }
+        #progress-bar { height: 100%; background: var(--accent); width: 0%; transition: 0.4s; }
+        .quiz-img-box { width: 100%; max-height: 300px; display: none; justify-content: center; margin-bottom: 20px; background: #000; border-radius: 12px; overflow: hidden; }
+        #quiz-img { max-width: 100%; object-fit: contain; }
+        .opt-btn { 
+            width: 100%; text-align: left; padding: 18px; margin: 10px 0; 
+            background: rgba(255,255,255,0.03); border: 1px solid var(--border); 
+            border-radius: 12px; color: white; cursor: pointer; font-size: 15px;
+        }
+        .opt-btn:hover { border-color: var(--accent); background: rgba(0,214,100,0.05); }
+
+        /* Chart Styles */
+        .chart-container { position: relative; width: 180px; height: 180px; margin: 0 auto 30px auto; }
+        .chart-svg { transform: rotate(-90deg); }
+        .chart-bg { fill: none; stroke: var(--border); stroke-width: 3; }
+        .chart-fill { fill: none; stroke: var(--accent); stroke-width: 3; stroke-dasharray: 100; stroke-dashoffset: 100; transition: 1s ease-out; stroke-linecap: round; }
+        .chart-text { 
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 32px; font-weight: 800; color: white; 
+        }
+
+        /* Review Table */
+        .review-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .review-table th, .review-table td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); font-size: 14px; }
+        .review-table th { color: var(--secondary-text); font-weight: 500; }
+        .wrong-tag { color: var(--error); font-weight: bold; }
+        .correct-tag { color: var(--accent); font-weight: bold; }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div id="header-left">
+            <button class="btn btn-outline hidden" id="back-to-home" onclick="showHome()">← My Decks</button>
+        </div>
+        <div style="font-weight: 900; color: var(--accent); letter-spacing: -1px; font-size: 22px;">MASTERY PRO</div>
+    </header>
+
+    <div class="container">
+        <!-- SCREEN 1: DECK MANAGER -->
+        <div id="home-screen">
+            <div class="card">
+                <h2 style="margin-top:0">Study Library</h2>
+                <button class="btn btn-accent btn-full" onclick="createNewDeck()">+ Create New Study Sheet</button>
+                <div class="deck-grid" id="deck-list"></div>
+            </div>
+        </div>
+
+        <!-- SCREEN 2: EDITOR -->
+        <div id="editor-screen" class="hidden">
+            <div class="card">
+                <input type="text" id="deck-name-input" placeholder="Deck Name (e.g. Biology Unit 1)" style="font-size: 20px; font-weight: 700; border: none; background: transparent; padding: 0; margin-bottom: 20px;">
+                <div id="row-list"></div>
+                <button class="btn btn-outline btn-full" onclick="addRow()">+ Add Row</button>
+                <button class="btn btn-accent btn-full" style="margin-top: 20px;" onclick="startQuiz()">Launch Learn Mode</button>
+                <button class="btn btn-danger btn-full" style="margin-top: 10px;" onclick="deleteCurrentDeck()">Delete This Deck</button>
+            </div>
+        </div>
+
+        <!-- SCREEN 3: QUIZ -->
+        <div id="quiz-screen" class="hidden">
+            <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                <span class="stats-label" id="quiz-deck-title">Deck Name</span>
+                <span id="quiz-percent" style="font-size: 12px; font-weight: 700;">0%</span>
+            </div>
+            <div class="progress-wrap"><div id="progress-bar"></div></div>
+            
+            <div class="card">
+                <div id="quiz-image-box" class="quiz-img-box"><img id="quiz-img" src=""></div>
+                <h1 id="quiz-question" style="text-align: center; margin-bottom: 30px;"></h1>
+                
+                <div id="mcq-options"></div>
+                
+                <div id="written-area" class="hidden">
+                    <input type="text" id="written-input" placeholder="Type answer..." onkeydown="if(event.key==='Enter') checkWritten()">
+                    <button class="btn btn-accent btn-full" onclick="checkWritten()">Submit</button>
+                </div>
+
+                <div id="feedback-area" class="hidden" style="text-align: center;">
+                    <h2 id="feedback-title"></h2>
+                    <p id="feedback-sub" style="color: var(--secondary-text);"></p>
+                    <button class="btn btn-accent btn-full" onclick="nextQuestion()">Continue</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN 4: RESULTS -->
+        <div id="results-screen" class="hidden">
+            <div class="card" style="text-align: center;">
+                <h2 style="margin-top: 0;">Session Report</h2>
+                <div class="chart-container">
+                    <svg class="chart-svg" viewBox="0 0 36 36">
+                        <circle class="chart-bg" cx="18" cy="18" r="15.9"></circle>
+                        <circle id="chart-fill" class="chart-fill" cx="18" cy="18" r="15.9"></circle>
+                    </svg>
+                    <div class="chart-text" id="chart-pct">0%</div>
+                </div>
+                
+                <div id="review-section">
+                    <h3 style="text-align: left; border-bottom: 1px solid var(--border); padding-bottom: 10px;">Review Incorrect Items</h3>
+                    <table class="review-table">
+                        <thead><tr><th>Question</th><th>Correct Answer</th></tr></thead>
+                        <tbody id="review-body"></tbody>
+                    </table>
+                </div>
+                
+                <button class="btn btn-accent btn-full" style="margin-top: 30px;" onclick="showHome()">Return to Library</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data Structure: { id, name, cards: [{term, def, img}] }
+        let allDecks = JSON.parse(localStorage.getItem('mastery_pro_data')) || [];
+        let currentDeckId = null;
+        let activeSession = { deck: [], sessionCards: [], missed: [] };
+
+        window.onload = () => renderDeckList();
+
+        function save() { localStorage.setItem('mastery_pro_data', JSON.stringify(allDecks)); }
+
+        function showHome() {
+            document.querySelectorAll('.container > div').forEach(d => d.classList.add('hidden'));
+            document.getElementById('home-screen').classList.remove('hidden');
+            document.getElementById('back-to-home').classList.add('hidden');
+            renderDeckList();
+        }
+
+        function renderDeckList() {
+            const list = document.getElementById('deck-list');
+            list.innerHTML = "";
+            allDecks.forEach(deck => {
+                const div = document.createElement('div');
+                div.className = 'deck-item';
+                div.onclick = () => openEditor(deck.id);
+                div.innerHTML = `<h3>${deck.name || "Untitled Deck"}</h3><p>${deck.cards.length} Cards</p>`;
+                list.appendChild(div);
+            });
+        }
+
+        function createNewDeck() {
+            const newId = Date.now();
+            allDecks.push({ id: newId, name: "New Study Sheet", cards: [] });
+            save();
+            openEditor(newId);
+        }
+
+        function openEditor(id) {
+            currentDeckId = id;
+            const deck = allDecks.find(d => d.id === id);
+            document.getElementById('deck-name-input').value = deck.name;
+            document.getElementById('deck-name-input').oninput = (e) => { deck.name = e.target.value; save(); };
+            
+            document.querySelectorAll('.container > div').forEach(d => d.classList.add('hidden'));
+            document.getElementById('editor-screen').classList.remove('hidden');
+            document.getElementById('back-to-home').classList.remove('hidden');
+            
+            const rowList = document.getElementById('row-list');
+            rowList.innerHTML = "";
+            if(deck.cards.length === 0) addRow();
+            else deck.cards.forEach(c => addRow(c.term, c.def, c.img));
+        }
+
+        function addRow(term="", def="", img="") {
+            const div = document.createElement('div');
+            div.className = 'input-row';
+            div.onpaste = (e) => handlePaste(e, div);
+            div.innerHTML = `
+                <img class="row-preview" src="${img}" style="${img?'display:block':''}">
+                <input type="text" placeholder="Term" class="t-in" value="${term}" oninput="syncDeck()">
+                <input type="text" placeholder="Definition" class="d-in" value="${def}" oninput="syncDeck()">
+                <input type="hidden" class="i-data" value="${img}">
+                <button onclick="this.parentElement.remove(); syncDeck()" style="background:none; color:var(--error); cursor:pointer; border:none; font-size:20px;">×</button>
+            `;
+            document.getElementById('row-list').appendChild(div);
+        }
+
+        function syncDeck() {
+            const deck = allDecks.find(d => d.id === currentDeckId);
+            const rows = document.querySelectorAll('.input-row');
+            deck.cards = Array.from(rows).map(row => ({
+                term: row.querySelector('.t-in').value,
+                def: row.querySelector('.d-in').value,
+                img: row.querySelector('.i-data').value
+            })).filter(c => c.term || c.def);
+            save();
+        }
+
+        function handlePaste(e, el) {
+            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf("image") !== -1) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        el.querySelector('.row-preview').src = event.target.result;
+                        el.querySelector('.row-preview').style.display = "block";
+                        el.querySelector('.i-data').value = event.target.result;
+                        syncDeck();
+                    };
+                    reader.readAsDataURL(items[i].getAsFile());
+                }
+            }
+        }
+
+        function deleteCurrentDeck() {
+            if(confirm("Delete this deck forever?")) {
+                allDecks = allDecks.filter(d => d.id !== currentDeckId);
+                save();
+                showHome();
+            }
+        }
+
+        // --- QUIZ LOGIC ---
+        let currentCard = null;
+
+        function startQuiz() {
+            const deck = allDecks.find(d => d.id === currentDeckId);
+            if(deck.cards.length < 2) return alert("Need at least 2 cards!");
+            
+            activeSession = {
+                deck: deck.cards.map(c => ({...c, mastery: 0})),
+                missed: [],
+                totalAttempts: 0,
+                correctCount: 0
+            };
+
+            document.querySelectorAll('.container > div').forEach(d => d.classList.add('hidden'));
+            document.getElementById('quiz-screen').classList.remove('hidden');
+            document.getElementById('quiz-deck-title').innerText = deck.name;
+            nextQuestion();
+        }
+
+        function nextQuestion() {
+            const eligible = activeSession.deck.filter(c => c.mastery < 2);
+            if(eligible.length === 0) return finishQuiz();
+
+            // Progress bar
+            let p = Math.round((activeSession.deck.reduce((s,c)=>s+c.mastery,0) / (activeSession.deck.length*2)) * 100);
+            document.getElementById('progress-bar').style.width = p + "%";
+            document.getElementById('quiz-percent').innerText = p + "%";
+
+            currentCard = eligible[Math.floor(Math.random() * eligible.length)];
+            document.getElementById('quiz-question').innerText = currentCard.term;
+            document.getElementById('feedback-area').classList.add('hidden');
+            document.getElementById('quiz-image-box').style.display = currentCard.img ? "flex" : "none";
+            document.getElementById('quiz-img').src = currentCard.img || "";
+
+            if(currentCard.mastery === 0) {
+                document.getElementById('mcq-options').classList.remove('hidden');
+                document.getElementById('written-area').classList.add('hidden');
+                generateMCQ();
+            } else {
+                document.getElementById('mcq-options').classList.add('hidden');
+                document.getElementById('written-area').classList.remove('hidden');
+                document.getElementById('written-input').value = "";
+                setTimeout(()=>document.getElementById('written-input').focus(), 50);
+            }
+        }
+
+        function generateMCQ() {
+            const opts = document.getElementById('mcq-options');
+            opts.innerHTML = "";
+            let choices = [currentCard.def];
+            let others = activeSession.deck.filter(c => c.def !== currentCard.def).map(c => c.def);
+            others = [...new Set(others)].sort(()=>0.5-Math.random()).slice(0,3);
+            choices = choices.concat(others).sort(()=>0.5-Math.random());
+            choices.forEach(choice => {
+                const b = document.createElement('button');
+                b.className = 'opt-btn';
+                b.innerText = choice;
+                b.onclick = () => handleAnswer(choice === currentCard.def);
+                opts.appendChild(b);
+            });
+        }
+
+        function checkWritten() {
+            const val = document.getElementById('written-input').value.trim().toLowerCase();
+            handleAnswer(val === currentCard.def.toLowerCase());
+        }
+
+        function handleAnswer(isCorrect) {
+            document.getElementById('mcq-options').classList.add('hidden');
+            document.getElementById('written-area').classList.add('hidden');
+            document.getElementById('feedback-area').classList.remove('hidden');
+            
+            activeSession.totalAttempts++;
+            if(isCorrect) {
+                activeSession.correctCount++;
+                document.getElementById('feedback-title').innerText = "Correct";
+                document.getElementById('feedback-title').style.color = "var(--accent)";
+                document.getElementById('feedback-sub').innerText = "Card Progressing...";
+                currentCard.mastery++;
+            } else {
+                document.getElementById('feedback-title').innerText = "Review Needed";
+                document.getElementById('feedback-title').style.color = "var(--error)";
+                document.getElementById('feedback-sub').innerHTML = `Correct answer: <b>${currentCard.def}</b>`;
+                if(!activeSession.missed.find(m => m.term === currentCard.term)) {
+                    activeSession.missed.push(currentCard);
+                }
+                currentCard.mastery = 0;
+            }
+        }
+
+        function finishQuiz() {
+            document.querySelectorAll('.container > div').forEach(d => d.classList.add('hidden'));
+            document.getElementById('results-screen').classList.remove('hidden');
+            
+            const pct = Math.round((activeSession.correctCount / activeSession.totalAttempts) * 100) || 0;
+            document.getElementById('chart-pct').innerText = pct + "%";
+            document.getElementById('chart-fill').style.strokeDashoffset = 100 - pct;
+
+            const tbody = document.getElementById('review-body');
+            tbody.innerHTML = "";
+            if(activeSession.missed.length === 0) {
+                document.getElementById('review-section').classList.add('hidden');
+            } else {
+                document.getElementById('review-section').classList.remove('hidden');
+                activeSession.missed.forEach(m => {
+                    tbody.innerHTML += `<tr><td>${m.term}</td><td class="correct-tag">${m.def}</td></tr>`;
+                });
+            }
+        }
+    </script>
+</body>
+</html>
